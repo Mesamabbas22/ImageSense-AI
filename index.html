@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Image Recognition</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Inter', sans-serif;
+    }
+
+    body {
+      background: linear-gradient(135deg, #f5f7ff, #ffffff);
+      color: #111;
+    }
+
+    /* Navbar */
+    .navbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 40px;
+      background: white;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+      position: sticky;
+      top: 0;
+    }
+
+    .logo {
+      font-size: 22px;
+      font-weight: 700;
+      color: #4f46e5;
+    }
+
+    .nav-links a {
+      margin: 0 10px;
+      text-decoration: none;
+      color: #555;
+    }
+
+    .btn {
+      background: #4f46e5;
+      color: white;
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+    }
+
+    /* Hero */
+    .hero {
+      text-align: center;
+      padding: 60px 20px;
+    }
+
+    .hero h1 {
+      font-size: 36px;
+      margin-bottom: 10px;
+    }
+
+    .hero p {
+      color: #666;
+    }
+
+    /* Upload Card */
+    .card {
+      max-width: 500px;
+      margin: auto;
+      background: white;
+      padding: 30px;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+      text-align: center;
+    }
+
+    .upload-box {
+      border: 2px dashed #ccc;
+      padding: 30px;
+      border-radius: 12px;
+      cursor: pointer;
+      margin-bottom: 15px;
+    }
+
+    .upload-box:hover {
+      border-color: #4f46e5;
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    img {
+      max-width: 100%;
+      margin-top: 15px;
+      border-radius: 12px;
+    }
+
+    /* Results */
+    .results {
+      margin-top: 20px;
+      text-align: left;
+    }
+
+    .result-item {
+      display: flex;
+      justify-content: space-between;
+      background: white;
+      padding: 10px;
+      margin-top: 8px;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+
+    /* Loading */
+    .loading {
+      margin-top: 15px;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <div class="navbar">
+    <div class="logo">AI Vision</div>
+    <div class="nav-links">
+      <a href="#">Home</a>
+      <a href="#">API</a>
+      <button class="btn">Login</button>
+    </div>
+  </div>
+
+  <!-- Hero -->
+  <div class="hero">
+    <h1>Upload an image. Let AI recognize it.</h1>
+    <p>Detect objects, animals, and scenes instantly using AI.</p>
+  </div>
+
+  <!-- Upload Card -->
+  <div class="card">
+
+    <label class="upload-box" for="fileInput">
+      Click or Drag & Drop Image Here
+    </label>
+
+    <input type="file" id="fileInput" accept="image/*" onchange="previewImage(event)">
+
+    <img id="preview" />
+
+    <button class="btn" onclick="uploadImage()" style="margin-top: 15px;">Analyze Image</button>
+
+    <div class="loading" id="loading" style="display:none;">
+      AI is analyzing image...
+    </div>
+
+    <div class="results" id="results"></div>
+  </div>
+
+  <script>
+    function previewImage(event) {
+      const reader = new FileReader();
+      reader.onload = function () {
+        const img = document.getElementById('preview');
+        img.src = reader.result;
+      }
+      reader.readAsDataURL(event.target.files[0]);
+    }
+
+    // Demo fake results
+    document.querySelector('.btn').addEventListener('click', () => {
+      document.getElementById('loading').style.display = 'block';
+
+      setTimeout(() => {
+        document.getElementById('loading').style.display = 'none';
+
+        document.getElementById('results').innerHTML = `
+          <div class="result-item"><span>Dog</span><span>92%</span></div>
+          <div class="result-item"><span>Animal</span><span>88%</span></div>
+          <div class="result-item"><span>Labrador</span><span>81%</span></div>
+        `;
+      }, 1500);
+    });
+  </script>
+
+</body>
+</html>
+
+<script>
+
+async function uploadImage() {
+    const fileInput = document.getElementById("fileInput");
+    const file = fileInput.files[0];
+
+    if (!file) {
+        alert("Please select an image");
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append("image", file);  // MUST match Django key
+
+    try {
+        const response = await fetch("http://127.0.0.1:8000/api/predict/", {
+            method: "POST",
+            body: formData
+        });
+
+        const data = await response.json();
+
+        console.log(data);
+
+        // show result on UI
+        let html = "";
+        data.predictions.forEach(item => {
+            html += `
+                <p>${item.label} - ${Math.round(item.confidence * 100)}%</p>
+            `;
+        });
+
+        document.getElementById("results").innerHTML = html;
+
+    } catch (error) {
+        console.error("Error:", error);
+        alert("API connection failed");
+    }
+}
+</script>
